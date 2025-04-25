@@ -5,26 +5,12 @@ import pytz
 def limpar_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-fuso_brasil = pytz.timezone('America/Sao_Paulo')
-today_utc = datetime.now(timezone.utc)
-
 # Operation Types
 DEPOSIT = 1
 WITHDRAW = 2
 
-saldo = 0
-# statement_model = {
-#     "operation_index": 1,
-#     "operation_date": today_utc,      
-#     "operation_type": DEPOSIT,
-#     "value": saldo
-# }
-extrato = []
-DAILY_WITHDRAW_LIMIT = 10
-
-def reach_daily_withdraws():
+def reach_daily_withdraws(extrato, today_utc):
     count_withdraws = 0
-    global today_utc
 
     for statement in extrato:
         operation_withdraw = statement['operation_type'] == WITHDRAW
@@ -34,20 +20,16 @@ def reach_daily_withdraws():
 
     return count_withdraws
         
-def next_day():
-     global today_utc
+def next_day(today_utc):
      today_utc += timedelta(days=1)
      return today_utc
 
-def get_actual_date():
-    return today_utc
-
-def showMenu():
-    global fuso_brasil
+def showMenu(today_utc, *, fuso_horario):
+    fuso_horario
     limpar_terminal()
     print(f"""
     {' Welcome to PyBank '.center(55, "-")}
-TODAY: {get_actual_date().astimezone(fuso_brasil).strftime('%d/%m/%Y')}
+TODAY: {today_utc.astimezone(fuso_horario).strftime('%d/%m/%Y')}
 
 [d] - Deposit
 [w] - Withdraw
@@ -55,9 +37,8 @@ TODAY: {get_actual_date().astimezone(fuso_brasil).strftime('%d/%m/%Y')}
 [q] - Exit
 [n] - Next Day""")
 
-def deposit_option():
+def deposit_option(saldo, extrato, today_utc):
     value = float(input("How much do you want to deposit? R$").replace(',', '.'))
-    global saldo
 
     if value > 0 and type(value) == float:
         saldo += value
@@ -74,10 +55,11 @@ def deposit_option():
     else:
         print("Invalid operation: The value must be greater than 0.")
 
-def withdraw_option():
-    withdraws_made = reach_daily_withdraws()
+    return saldo, extrato
+
+def withdraw_option(saldo, extrato, today_utc, DAILY_WITHDRAW_LIMIT):
+    withdraws_made = reach_daily_withdraws(extrato, today_utc)
     exceded_withdraws = withdraws_made >= DAILY_WITHDRAW_LIMIT
-    global saldo
 
     if exceded_withdraws:
         print("You've exceeded the daily withdraws limit.")
@@ -96,16 +78,17 @@ def withdraw_option():
                 "value": value
             })
 
-            withdraws_made = reach_daily_withdraws()
+            withdraws_made = reach_daily_withdraws(extrato, today_utc)
 
             print(f"\nSuccess!")
             print(f"Withdraws left: {DAILY_WITHDRAW_LIMIT - withdraws_made}")
             print(f"Current balance: R${saldo:.2f}".replace('.', ','))
         else:
             print("Invalid operation: The value must be greater than 0")
+            
+    return saldo, extrato
 
-def statement_option():
-    global extrato
+def statement_option(saldo, extrato, *, fuso_horario):
     
     print("")
     print(f" My statements in PyBank ".center(55, "="))
@@ -118,7 +101,7 @@ def statement_option():
         operation_type = ""
         operation_sign = ""
         value_string = f"R${statement['value']:.2f}".replace('.', ',')
-        formated_date = f"{statement['operation_date'].astimezone(fuso_brasil).strftime('%d/%m/%Y %H:%M:%S')}"
+        formated_date = f"{statement['operation_date'].astimezone(fuso_horario).strftime('%d/%m/%Y %H:%M:%S')}"
 
         if statement['operation_type'] == 1:
             operation_type = "DEPOSIT"
@@ -127,34 +110,43 @@ def statement_option():
             operation_type = "WITHDRAW"
             operation_sign = "-"
         
-        print(f"{statement['operation_index']:<5} | {formated_date:<21} | {operation_type:<10} | {operation_sign}{value_string}")
+        print(f"{statement['operation_index']:<5} | {formated_date:<21} | {operation_type:<10} | {operation_sign}{value_string:>12}")
     
     print(f"-".center(28, "-"))
     print(f"Current Ballance: R${saldo:.2f}".replace('.', ','))
     print(f"=".center(55, "="))
 
-showMenu()
+def main():
+    fuso_brasil = pytz.timezone('America/Sao_Paulo')
+    today_utc = datetime.now(timezone.utc)
 
-while(True):
-    opcao = input("\nSelect an option ([m] - Menu): ").upper()
+    DAILY_WITHDRAW_LIMIT = 10
+    saldo = 0
+    extrato = []
+    showMenu(today_utc, fuso_horario=fuso_brasil)
 
-    if opcao == "D":
-        deposit_option()
-        
-    elif opcao == "W":
-        withdraw_option()
-        
-    elif opcao == "S":
-        statement_option()
-        
-    elif opcao == "M":
-        showMenu()
+    while(True):
+        opcao = input("\nSelect an option ([m] - Menu): ").upper()
 
-    elif opcao == "N":
-        next_day()
-        showMenu()
-        
-    elif opcao == "Q":
-        break
-    else:
-        print("Invalid operation. Select a valid option.")
+        if opcao == "D":
+            saldo, extrato = deposit_option(saldo, extrato, today_utc)
+            
+        elif opcao == "W":
+            saldo, extrato = withdraw_option(saldo, extrato, today_utc, DAILY_WITHDRAW_LIMIT)
+            
+        elif opcao == "S":
+            statement_option(saldo, extrato, fuso_horario=fuso_brasil)
+            
+        elif opcao == "M":
+            showMenu(today_utc, fuso_horario=fuso_brasil)
+
+        elif opcao == "N":
+            today_utc = next_day(today_utc)
+            showMenu(today_utc, fuso_horario=fuso_brasil)
+            
+        elif opcao == "Q":
+            break
+        else:
+            print("Invalid operation. Select a valid option.")
+
+main()
