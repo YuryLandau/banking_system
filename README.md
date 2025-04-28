@@ -4,10 +4,14 @@ Este projeto é uma aplicação simples em Python que simula ações bancárias 
 
 ## 🔧 Funcionalidades
 
-- **Depositar** valores na conta
-- **Sacar** valores com verificação de limite e saldo
-- **Exibir extrato** (statement) com o histórico das operações
-- **Sair** da aplicação
+- [d] - **Deposit**: Depositar valore.
+- [w] - **Withdraw**: Sacar valores.
+- [s] - **Statement**: Exibir extrato (statement) com o histórico das operações.
+- [nu]- **New User**: Criar novo usuário.
+- [na]- **New bank account**: Criar nova conta no banco.
+- [la]- **List accounts**: Listar todas as contas bancárias.
+- [n] - **Next Day**: Simular avanço do dia.
+- [q] - **Exit**: Sair da aplicação.
 
 ## 🚀 Como executar
 
