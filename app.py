@@ -24,11 +24,18 @@ def reach_daily_withdraws(extrato, today_utc):
 
     return withdraws_made, withdraws_values
         
+
+def filter_users(cpf, users):
+    filtered_users = [user for user in users if user['cpf'] == cpf]
+    return filtered_users[0] if filtered_users else None
+
+
 def next_day(today_utc):
      today_utc += timedelta(days=1)
      return today_utc
 
-def showMenu(today_utc, *, timezone):
+
+def show_menu(today_utc, *, timezone):
     timezone
     limpar_terminal()
     print(f"""
@@ -43,6 +50,7 @@ TODAY: {today_utc.astimezone(timezone).strftime('%d/%m/%Y')}
 [la]- List accounts
 [n] - Next day
 [q] - Exit""")
+
 
 def deposit_option(saldo, extrato, today_utc, /):
     value = float(input("How much do you want to deposit? R$").replace(',', '.'))
@@ -64,9 +72,9 @@ def deposit_option(saldo, extrato, today_utc, /):
 
     return saldo, extrato
 
+
 def withdraw_option(*, saldo, extrato, today_utc, limite):
     withdraws_made, withdraws_values = reach_daily_withdraws(extrato, today_utc)
-
     exceded_withdraws = withdraws_made >= DAILY_WITHDRAW_LIMIT
 
     if exceded_withdraws:
@@ -100,13 +108,44 @@ def withdraw_option(*, saldo, extrato, today_utc, limite):
             
     return saldo, extrato, limite
 
-def statement_option(saldo, extrato, *, timezone):
+
+def create_user_option(users):
+    cpf = input("Enter your CPF (only numbers): ")
+    user = filter_users(cpf, users)
+
+    if user:
+        print("There is already a user with this CPF.")
+        return
     
+    name = input("Insert your full name: ")
+    birthday = input("Inform your birthday(dd-mm-yyyy): ")
+    address = input("Inform your address(street, number - neighborhood - city): ")
+
+    users.append({"name": name, "birthday": birthday, "cpf": cpf, "address": address})
+
+    print("Success creating new user!")
+
+def create_account_option():
+    account = {}
+
+    print("Success creating the account")
+    return account
+
+def list_accounts_option():
+    account_list = []
+    
+    for account in account_list:
+        print("")
+
+def statement_option(saldo, /, *, extrato, timezone):
+    
+    # ===== Statement Header
     print("")
     print(f" My statements in PyBank ".center(55, "="))
     print(f"\nINDEX".center(5)+" |  "+f"DATE TIME".center(20)+" | "+f"OPERATION".center(10)+" | "+"VALUE(R$)")
     print(f"-".center(55, "-"))
 
+    # ===== Statement Logic
     if not len(extrato):
         print("No transactions recorded")
     for statement in extrato:
@@ -124,6 +163,7 @@ def statement_option(saldo, extrato, *, timezone):
         
         print(f"{statement['operation_index']:<5} | {formated_date:<21} | {operation_type:<10} | {operation_sign}{value_string:>12}")
     
+    # ===== Statement Footer
     print(f"-".center(28, "-"))
     print(f"Current Ballance: R${saldo:.2f}".replace('.', ','))
     print(f"=".center(55, "="))
@@ -134,8 +174,9 @@ def main():
     saldo = 0
     extrato = []
     limite = DAILY_WITHDRAW_LIMIT_VALUE
+    users = []
     
-    showMenu(today_utc, timezone=timezone_brasil)
+    show_menu(today_utc, timezone=timezone_brasil)
 
     while(True):
         opcao = input("\nSelect an option ([m] - Menu): ").upper()
@@ -151,23 +192,23 @@ def main():
                 limite=limite)
             
         elif opcao == "S":
-            statement_option(saldo, extrato, timezone=timezone_brasil)
+            statement_option(saldo, extrato=extrato, timezone=timezone_brasil)
             
         elif opcao == "M":
-            showMenu(today_utc, timezone=timezone_brasil)
+            show_menu(today_utc, timezone=timezone_brasil)
 
         elif opcao == "N":
             today_utc = next_day(today_utc)
-            showMenu(today_utc, timezone=timezone_brasil)
+            show_menu(today_utc, timezone=timezone_brasil)
 
         elif opcao == "NU":
-            return ""
+            create_user_option(users)
             
         elif opcao == "NA":
-            return ""
+            create_account_option()
             
         elif opcao == "LA":
-            return ""
+            list_accounts_option()
             
         elif opcao == "Q":
             break
