@@ -10,6 +10,7 @@ DEPOSIT = 1
 WITHDRAW = 2
 DAILY_WITHDRAW_LIMIT = 10
 DAILY_WITHDRAW_LIMIT_VALUE = 500
+AGENCY = "0001"
 
 def reach_daily_withdraws(extrato, today_utc):
     withdraws_made = 0
@@ -125,17 +126,27 @@ def create_user_option(users):
 
     print("Success creating new user!")
 
-def create_account_option():
-    account = {}
+def create_account_option(agency, account_number, users ,/):
+    cpf = input("Inform user's CPF: ")
+    user = filter_users(cpf, users)
 
-    print("Success creating the account")
-    return account
+    if user:
+        print("Success creating the account")
+        return {
+            "agency": agency,
+            "account_number": account_number,
+            "user": user
+        }
+    
+    print("Unable to find that user, it may not exist")
 
-def list_accounts_option():
-    account_list = []
+def list_accounts_option(account_list):
     
     for account in account_list:
-        print("")
+        print(f"""
+Agency: {account['agency']} Number: {account['account_number']}
+Client name: {account['user']['name']}
+""")
 
 def statement_option(saldo, /, *, extrato, timezone):
     
@@ -175,6 +186,7 @@ def main():
     extrato = []
     limite = DAILY_WITHDRAW_LIMIT_VALUE
     users = []
+    accounts = []
     
     show_menu(today_utc, timezone=timezone_brasil)
 
@@ -205,10 +217,14 @@ def main():
             create_user_option(users)
             
         elif opcao == "NA":
-            create_account_option()
+            account_number = len(accounts) + 1
+            account = create_account_option(AGENCY, account_number, users)
+
+            if account:
+                accounts.append(account)
             
         elif opcao == "LA":
-            list_accounts_option()
+            list_accounts_option(accounts)
             
         elif opcao == "Q":
             break
