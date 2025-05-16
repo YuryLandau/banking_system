@@ -2,6 +2,8 @@ import os
 from datetime import datetime, timezone, timedelta
 import pytz
 
+from types import Deposit, Withdraw
+
 def limpar_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -26,9 +28,17 @@ def reach_daily_withdraws(extrato, today_utc):
     return withdraws_made, withdraws_values
         
 
-def filter_users(cpf, users):
-    filtered_users = [user for user in users if user['cpf'] == cpf]
-    return filtered_users[0] if filtered_users else None
+def filter_clients(cpf, clients):
+    filtered_clients = [client for client in clients if client['cpf'] == cpf]
+    return filtered_clients[0] if filtered_clients else None
+
+
+def get_client_account(client):
+    if not client.accounts:
+        print("This user does not have an account")
+        return None
+    
+    return client.accounts[0]
 
 
 def next_day(today_utc):
@@ -53,66 +63,45 @@ TODAY: {today_utc.astimezone(timezone).strftime('%d/%m/%Y')}
 [q] - Exit""")
 
 
-def deposit_option(saldo, extrato, today_utc, /):
+def deposit_option(clients):
+    cpf = input("Enter your CPF (only numbers): ")
+    client = filter_clients(cpf, clients)
+
+    if not client:
+        print("Unable to find that user, it may not exist")
+        return
+    
     value = float(input("How much do you want to deposit? R$").replace(',', '.'))
+    transaction = Deposit(value)
 
-    if value > 0 and type(value) == float:
-        saldo += value
+    account = get_client_account(client)
+    if not account:
+        return
 
-        extrato.append({
-            "operation_index": len(extrato) + 1,
-            "operation_date": today_utc,
-            "operation_type": DEPOSIT,
-            "value": value
-        })
-
-        print(f"\nSuccess!")
-        print(f"Current balance: R${saldo:.2f}".replace('.', ','))
-    else:
-        print("Invalid operation: The value must be greater than 0.")
-
-    return saldo, extrato
+    client.make_transaction(account, transaction)
 
 
-def withdraw_option(*, saldo, extrato, today_utc, limite):
-    withdraws_made, withdraws_values = reach_daily_withdraws(extrato, today_utc)
-    exceded_withdraws = withdraws_made >= DAILY_WITHDRAW_LIMIT
+def withdraw_option(clients):
+    cpf = input("Enter your CPF (only numbers): ")
+    client = filter_clients(cpf, clients)
 
-    if exceded_withdraws:
-        print("You've exceeded the daily withdraws limit.")
-    else:
-        value = float(input("How much do you want to withdraw? R$").replace(',', '.'))
+    if not client:
+        print("Unable to find that user, it may not exist")
+        return
+    
+    value = float(input("How much do you want to withdraw? R$").replace(',', '.'))
+    transaction = Withdraw(value)
 
-        if value > saldo:
-            print("Invalid operation: The amount exeeds the balance limit.")
-        elif value > limite:
-            print("Invalid operation: The amount exeeds the daily withdraw limit")
-        elif value > 0:
-            saldo -= value
-            limite -= value
-            
-            extrato.append({
-                "operation_index": len(extrato) + 1,
-                "operation_date": today_utc,
-                "operation_type": WITHDRAW,
-                "value": value
-            })
+    account = get_client_account(client)
+    if not account:
+        return
 
-            withdraws_made, withdraws_values = reach_daily_withdraws(extrato, today_utc)
-
-            print(f"\nSuccess!")
-            print(f"Withdraws left: {DAILY_WITHDRAW_LIMIT - withdraws_made}")
-            print(f"Amount available for withdraw: {DAILY_WITHDRAW_LIMIT_VALUE - withdraws_values}")
-            print(f"Current balance: R${saldo:.2f}".replace('.', ','))
-        else:
-            print("Invalid operation: The value must be greater than 0")
-            
-    return saldo, extrato, limite
+    client.make_transaction(account, transaction)
 
 
 def create_user_option(users):
     cpf = input("Enter your CPF (only numbers): ")
-    user = filter_users(cpf, users)
+    user = filter_clients(cpf, users)
 
     if user:
         print("There is already a user with this CPF.")
@@ -126,9 +115,10 @@ def create_user_option(users):
 
     print("Success creating new user!")
 
+
 def create_account_option(agency, account_number, users ,/):
     cpf = input("Inform user's CPF: ")
-    user = filter_users(cpf, users)
+    user = filter_clients(cpf, users)
 
     if user:
         print("Success creating the account")
@@ -140,6 +130,7 @@ def create_account_option(agency, account_number, users ,/):
     
     print("Unable to find that user, it may not exist")
 
+
 def list_accounts_option(account_list):
     
     for account in account_list:
@@ -147,6 +138,7 @@ def list_accounts_option(account_list):
 Agency: {account['agency']} Number: {account['account_number']}
 Client name: {account['user']['name']}
 """)
+
 
 def statement_option(saldo, /, *, extrato, timezone):
     
@@ -179,6 +171,7 @@ def statement_option(saldo, /, *, extrato, timezone):
     print(f"Current Ballance: R${saldo:.2f}".replace('.', ','))
     print(f"=".center(55, "="))
 
+
 def main():
     timezone_brasil = pytz.timezone('America/Sao_Paulo')
     today_utc = datetime.now(timezone.utc)
@@ -186,47 +179,45 @@ def main():
     extrato = []
     limite = DAILY_WITHDRAW_LIMIT_VALUE
     users = []
+
+    clients = []
     accounts = []
     
     show_menu(today_utc, timezone=timezone_brasil)
 
     while(True):
-        opcao = input("\nSelect an option ([m] - Menu): ").upper()
+        option = input("\nSelect an option ([m] - Menu): ").upper()
 
-        if opcao == "D":
-            saldo, extrato = deposit_option(saldo, extrato, today_utc)
+        if option == "D":
+            deposit_option(clients)
             
-        elif opcao == "W":
-            saldo, extrato, limite = withdraw_option(
-                saldo=saldo, 
-                extrato=extrato, 
-                today_utc=today_utc, 
-                limite=limite)
+        elif option == "W":
+            withdraw_option(clients)
             
-        elif opcao == "S":
+        elif option == "S":
             statement_option(saldo, extrato=extrato, timezone=timezone_brasil)
             
-        elif opcao == "M":
+        elif option == "M":
             show_menu(today_utc, timezone=timezone_brasil)
 
-        elif opcao == "N":
+        elif option == "N":
             today_utc = next_day(today_utc)
             show_menu(today_utc, timezone=timezone_brasil)
 
-        elif opcao == "NU":
+        elif option == "NU":
             create_user_option(users)
             
-        elif opcao == "NA":
+        elif option == "NA":
             account_number = len(accounts) + 1
             account = create_account_option(AGENCY, account_number, users)
 
             if account:
                 accounts.append(account)
             
-        elif opcao == "LA":
+        elif option == "LA":
             list_accounts_option(accounts)
             
-        elif opcao == "Q":
+        elif option == "Q":
             break
         else:
             print("Invalid operation. Select a valid option.")
