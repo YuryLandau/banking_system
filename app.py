@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 from datetime import datetime, timezone, timedelta
 import pytz
@@ -35,9 +36,10 @@ def filter_clients(cpf, clients: list[Client]) -> Client:
 
 def get_client_account(client):
     if not client.accounts:
-        print("This user does not have an account")
+        print("This client does not have an account")
         return None
     
+    # TODO: Check if the client has more than one account
     return client.accounts[0]
 
 
@@ -71,7 +73,7 @@ def deposit_option(clients):
         print("Unable to find that user, it may not exist")
         return
     
-    value = float(input("How much do you want to deposit? R$").replace(',', '.'))
+    value = Decimal(input("How much do you want to deposit? R$").replace(',', '.'))
     transaction = Deposit(value)
 
     account = get_client_account(client)
@@ -88,7 +90,7 @@ def withdraw_option(clients):
         print("Unable to find that user, it may not exist")
         return
     
-    value = float(input("How much do you want to withdraw? R$").replace(',', '.'))
+    value = Decimal(input("How much do you want to withdraw? R$").replace(',', '.'))
     transaction = Withdraw(value)
 
     account = get_client_account(client)
@@ -139,7 +141,7 @@ Client name: {account['user']['name']}
 """)
 
 
-def statement_option(saldo, /, *, extrato, timezone):
+def statement_option(clients: list[Client], timezone) -> None:
     
     # ===== Statement Header
     print("")
@@ -148,26 +150,39 @@ def statement_option(saldo, /, *, extrato, timezone):
     print(f"-".center(55, "-"))
 
     # ===== Statement Logic
-    if not len(extrato):
-        print("No transactions recorded")
-    for statement in extrato:
-        operation_type = ""
-        operation_sign = ""
-        value_string = f"R${statement['value']:.2f}".replace('.', ',')
-        formated_date = f"{statement['operation_date'].astimezone(timezone).strftime('%d/%m/%Y %H:%M:%S')}"
+    cpf = input("Enter your CPF (only numbers): ")
 
-        if statement['operation_type'] == 1:
-            operation_type = "DEPOSIT"
+    client = filter_clients(cpf, clients)
+    if not client:
+        print("Unable to find that user, it may not exist")
+        return
+    
+    account = get_client_account(client)
+    if not account:
+        print("This client does not have an account")
+        return
+    
+    transactions = account.history.transactions
+    if not len(transactions):
+        print("No transactions recorded")
+
+    # Iterate over transactions
+    for transaction in transactions:
+        operation_sign = ""
+        value_string = f"R${transaction['value']:.2f}".replace('.', ',')
+        formated_date = f"{transaction['operation_date'].astimezone(timezone).strftime('%d/%m/%Y %H:%M:%S')}"
+
+        # Set operation sign
+        if transaction['operation_type'].upper() == "DEPOSIT":
             operation_sign = "+"
-        elif statement['operation_type'] == 2:
-            operation_type = "WITHDRAW"
+        elif transaction['operation_type'].upper() == "WITHDRAW":
             operation_sign = "-"
         
-        print(f"{statement['operation_index']:<5} | {formated_date:<21} | {operation_type:<10} | {operation_sign}{value_string:>12}")
+        print(f"{transaction['operation_index']:<5} | {formated_date:<21} | {transaction['operation_type']:<10} | {operation_sign}{value_string:>12}")
     
     # ===== Statement Footer
     print(f"-".center(28, "-"))
-    print(f"Current Ballance: R${saldo:.2f}".replace('.', ','))
+    print(f"Current Ballance: R${account.balance:.2f}".replace('.', ','))
     print(f"=".center(55, "="))
 
 
@@ -194,7 +209,7 @@ def main():
             withdraw_option(clients)
             
         elif option == "S":
-            statement_option(saldo, extrato=extrato, timezone=timezone_brasil)
+            statement_option(clients, timezone=timezone_brasil)
             
         elif option == "M":
             show_menu(today_utc, timezone=timezone_brasil)
