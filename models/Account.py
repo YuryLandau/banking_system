@@ -1,9 +1,17 @@
 from decimal import Decimal
+from typing import TypedDict
 
-from models import History
+from models import History, Individual
+
+class AccountDict(TypedDict):
+    number: int
+    bank_branch: str
+    balance: Decimal
+    client: Individual  # ou str, se for serializado
+    history: list[History.TransactionDict]
 
 class Account:
-    def __init__(self, number, client):
+    def __init__(self, number: int, client: Individual) -> AccountDict:
         self._balance = Decimal(0.0)
         self._number = number
         self._bank_branch = "0001"
@@ -23,7 +31,7 @@ class Account:
         return self._bank_branch
     
     @property
-    def client(self)  :
+    def client(self) -> Individual:
         return self._client
     
     @property
@@ -58,7 +66,8 @@ class Account:
         
         return True
 
+    ## ======= Factory Method =======
     @classmethod
-    def new_account(cls, client, number) -> None:
+    def new_account(cls, number: int, client: Individual) -> "Account":
         return cls(number, client)
     

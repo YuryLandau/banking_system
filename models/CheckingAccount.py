@@ -9,7 +9,7 @@ class CheckingAccount(Account):
         self._limit = limit
         self._withdraw_limit = withdraw_limit
 
-    def sacar(self, value: Decimal):
+    def withdraw(self, value: Decimal):
         withdraw_count = len([transaction for transaction in self.history.transactions if transaction['operation_type'] == Withdraw.__name__])
 
         limit_exceeded = value > self._limit
@@ -29,8 +29,8 @@ class CheckingAccount(Account):
     
     def __str__(self):
         return f"""
-Agência: {self._bank_branch}
-Número: {self.number}
-Cliente: {self.client.name}
-Saldo atual: {self.balance:.2f}
+Agency: {self._bank_branch}
+Account number: {self.number}
+Client: {self.client.name}
+Current balance: {self.balance:.2f}
         """

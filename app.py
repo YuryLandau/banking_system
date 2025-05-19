@@ -1,9 +1,12 @@
 from decimal import Decimal
 import os
 from datetime import datetime, timezone, timedelta
+import textwrap
+from typing import List
 import pytz
 
-from models import Deposit, Withdraw, Client
+from models import Account, CheckingAccount, Deposit, Individual, Withdraw, Client
+from models.History import TransactionDict
 
 def limpar_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -29,7 +32,7 @@ def reach_daily_withdraws(extrato, today_utc):
     return withdraws_made, withdraws_values
         
 
-def filter_clients(cpf, clients: list[Client]) -> Client:
+def filter_clients(cpf, clients: list[Individual]) -> Individual:
     filtered_clients = [client for client in clients if client['cpf'] == cpf]
     return filtered_clients[0] if filtered_clients else None
 
@@ -117,31 +120,35 @@ def create_user_option(users):
     print("Success creating new user!")
 
 
-def create_account_option(agency, account_number, users ,/):
-    cpf = input("Inform user's CPF: ")
-    user = filter_clients(cpf, users)
+def create_account_option(account_number, clients, accounts):
+    cpf = input("Inform client's CPF: ")
+    client = filter_clients(cpf, clients)
 
-    if user:
-        print("Success creating the account")
-        return {
-            "agency": agency,
-            "account_number": account_number,
-            "user": user
-        }
+    if not client:
+        print("Unable to find that client, it may not exist")
+        return
     
-    print("Unable to find that user, it may not exist")
+    account = CheckingAccount.new_account(number=account_number, client=client)
+
+    accounts.append(account)
+    client.accounts.append(account)
+
+    print(f"Success creating new account for {client.name}!")
 
 
-def list_accounts_option(account_list):
+def list_accounts_option(account_list: List[CheckingAccount]) -> None:
     
     for account in account_list:
-        print(f"""
-Agency: {account['agency']} Number: {account['account_number']}
-Client name: {account['user']['name']}
-""")
+#         print(f"""
+# Agency: {account['agency']} Number: {account['account_number']}
+# Client name: {account['client']['name']}
+# """)
+
+        print("=" * 100)
+        print(textwrap.dedent(str(account)))
 
 
-def statement_option(clients: list[Client], timezone) -> None:
+def statement_option(clients: list[Individual], timezone) -> None:
     
     # ===== Statement Header
     print("")
@@ -162,12 +169,14 @@ def statement_option(clients: list[Client], timezone) -> None:
         print("This client does not have an account")
         return
     
-    transactions = account.history.transactions
+    transactions: List[TransactionDict] = account.history.transactions
     if not len(transactions):
         print("No transactions recorded")
 
     # Iterate over transactions
     for transaction in transactions:
+
+        # Format transaction
         operation_sign = ""
         value_string = f"R${transaction['value']:.2f}".replace('.', ',')
         formated_date = f"{transaction['operation_date'].astimezone(timezone).strftime('%d/%m/%Y %H:%M:%S')}"
@@ -175,6 +184,7 @@ def statement_option(clients: list[Client], timezone) -> None:
         # Set operation sign
         if transaction['operation_type'].upper() == "DEPOSIT":
             operation_sign = "+"
+
         elif transaction['operation_type'].upper() == "WITHDRAW":
             operation_sign = "-"
         
@@ -189,13 +199,10 @@ def statement_option(clients: list[Client], timezone) -> None:
 def main():
     timezone_brasil = pytz.timezone('America/Sao_Paulo')
     today_utc = datetime.now(timezone.utc)
-    saldo = 0
-    extrato = []
-    limite = DAILY_WITHDRAW_LIMIT_VALUE
     users = []
 
-    clients = []
-    accounts = []
+    clients: List[Individual] = []
+    accounts: List[Account] = []
     
     show_menu(today_utc, timezone=timezone_brasil)
 
@@ -223,10 +230,7 @@ def main():
             
         elif option == "NA":
             account_number = len(accounts) + 1
-            account = create_account_option(AGENCY, account_number, users)
-
-            if account:
-                accounts.append(account)
+            create_account_option(account_number, clients, accounts)
             
         elif option == "LA":
             list_accounts_option(accounts)
