@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from types import Account
+from models import Account
 
 class Transaction(ABC):
     @property

@@ -1,4 +1,4 @@
-from types import Account, Transaction
+from models import Account, Transaction
 from decimal import Decimal
 
 

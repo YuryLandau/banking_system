@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from types import Account, Withdraw
+from models import Account, Withdraw
 
 class CheckingAccount(Account):
     def __init__(self, number, client, limit: Decimal = Decimal(500.2), withdraw_limit: int = 3):

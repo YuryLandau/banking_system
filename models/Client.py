@@ -1,4 +1,4 @@
-from types import Account, Transaction
+from models import Account, Transaction
 
 class Client:
     def __init__(self, address, accounts: list[Account] = []):

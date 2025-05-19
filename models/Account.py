@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from types import History
+from models import History
 
 class Account:
     def __init__(self, number, client):
@@ -11,7 +11,7 @@ class Account:
         self._history = History()
     
     @property
-    def balance(self):
+    def balance(self) -> Decimal:
         return Decimal(self._balance)
     
     @property
@@ -19,18 +19,18 @@ class Account:
         return self._number
     
     @property
-    def bank_branch(self):
+    def bank_branch(self) -> str:
         return self._bank_branch
     
     @property
-    def client(self):
+    def client(self)  :
         return self._client
     
     @property
     def history(self):
         return self._history
     
-    def withdraw(self, value):
+    def withdraw(self, value) -> bool:
         balance = self.balance
         excedeu_balance = Decimal(value) > balance
 
@@ -46,7 +46,7 @@ class Account:
             print(f"Invalid Operation: The withdrawal amount must be greater than zero.")
         return False
 
-    def deposit(self, value):
+    def deposit(self, value) -> bool:
         if value <= 0:
             print("Invalid Operation: The deposit amount must be greater than zero.")
 
@@ -59,6 +59,6 @@ class Account:
         return True
 
     @classmethod
-    def new_account(cls, client, number):
+    def new_account(cls, client, number) -> None:
         return cls(number, client)
     
