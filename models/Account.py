@@ -1,17 +1,10 @@
 from decimal import Decimal
 from typing import TypedDict
 
-from models import History, Individual
-
-class AccountDict(TypedDict):
-    number: int
-    bank_branch: str
-    balance: Decimal
-    client: Individual  # ou str, se for serializado
-    history: list[History.TransactionDict]
+from models.History import History
 
 class Account:
-    def __init__(self, number: int, client: Individual) -> AccountDict:
+    def __init__(self, number: int, client):
         self._balance = Decimal(0.0)
         self._number = number
         self._bank_branch = "0001"
@@ -31,7 +24,7 @@ class Account:
         return self._bank_branch
     
     @property
-    def client(self) -> Individual:
+    def client(self):
         return self._client
     
     @property
@@ -40,13 +33,13 @@ class Account:
     
     def withdraw(self, value) -> bool:
         balance = self.balance
-        excedeu_balance = Decimal(value) > balance
+        excedeeded_balance = Decimal(value) > balance
 
-        if excedeu_balance:
+        if excedeeded_balance:
             print("Invalid Operation: The withdrawal amount exceeds the account balance.")
 
         elif value > 0:
-            Decimal(self._balance) -= Decimal(value)
+            self._balance -= Decimal(value)
             print(f"Amount withdrawn: {value}")
             return True
 
@@ -60,7 +53,7 @@ class Account:
 
             return False
         
-        Decimal(self._balance) += Decimal(value)
+        self._balance += Decimal(value)
         print(f"Amount deposited: {value}")
         print(f"Current balance: {self._balance}")
         
@@ -68,6 +61,6 @@ class Account:
 
     ## ======= Factory Method =======
     @classmethod
-    def new_account(cls, number: int, client: Individual) -> "Account":
+    def new_account(cls, number: int, client) -> "Account":
         return cls(number, client)
     

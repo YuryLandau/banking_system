@@ -1,4 +1,5 @@
-from models import Account, Transaction
+from models.Account import Account
+from models.Transaction import Transaction
 
 class Client:
     def __init__(self, address, accounts: list[Account] = []):
@@ -11,5 +12,5 @@ class Client:
 
     def make_transaction(self, account: Account, transaction: Transaction):
         transaction.register(account)
-        print(f"Transaction made: {transaction}")
+        print(f"Transaction made: R${transaction.value}".replace('.', ','))
     

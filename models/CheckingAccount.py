@@ -32,5 +32,5 @@ class CheckingAccount(Account):
 Agency: {self._bank_branch}
 Account number: {self.number}
 Client: {self.client.name}
-Current balance: {self.balance:.2f}
-        """
+Current balance: R${self.balance:.2f}
+        """.replace('.', ',')

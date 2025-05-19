@@ -1,5 +1,5 @@
 from datetime import date
-from models import Client
+from models.Client import Client
 
 class Individual(Client):
     def __init__(self, name: str, cpf: str, birthday: date, address: str):

@@ -7,6 +7,10 @@ class Transaction(ABC):
     def value(self):
         pass
 
+    @property
+    @abstractmethod
+    def date(self):
+        return self._date
 
     @abstractmethod
     def register(self, account: Account):

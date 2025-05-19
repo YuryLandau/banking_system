@@ -5,25 +5,19 @@ import textwrap
 from typing import List
 import pytz
 
-from models import Account, CheckingAccount, Deposit, Individual, Withdraw, Client
+from models import Account, CheckingAccount, Deposit, Individual, Withdraw
 from models.History import TransactionDict
 
 def limpar_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# Operation models
-DEPOSIT = 1
-WITHDRAW = 2    
-DAILY_WITHDRAW_LIMIT = 10
-DAILY_WITHDRAW_LIMIT_VALUE = 500
-AGENCY = "0001"
 
 def reach_daily_withdraws(extrato, today_utc):
     withdraws_made = 0
     withdraws_values = 0
 
     for statement in extrato:
-        operation_withdraw = statement['operation_type'] == WITHDRAW
+        operation_withdraw = statement['operation_type'] == "WITHDRAW"
 
         if operation_withdraw and statement['operation_date'].date() == today_utc.date():
             withdraws_made += 1
@@ -33,7 +27,7 @@ def reach_daily_withdraws(extrato, today_utc):
         
 
 def filter_clients(cpf, clients: list[Individual]) -> Individual:
-    filtered_clients = [client for client in clients if client['cpf'] == cpf]
+    filtered_clients = [client for client in clients if client.cpf == cpf]
     return filtered_clients[0] if filtered_clients else None
 
 
@@ -68,16 +62,16 @@ TODAY: {today_utc.astimezone(timezone).strftime('%d/%m/%Y')}
 [q] - Exit""")
 
 
-def deposit_option(clients):
+def deposit_option(clients, today_utc):
     cpf = input("Enter your CPF (only numbers): ")
     client = filter_clients(cpf, clients)
 
     if not client:
-        print("Unable to find that user, it may not exist")
+        print("Unable to find that client, it may not exist")
         return
     
     value = Decimal(input("How much do you want to deposit? R$").replace(',', '.'))
-    transaction = Deposit(value)
+    transaction = Deposit(value, today_utc)
 
     account = get_client_account(client)
     if not account:
@@ -85,16 +79,16 @@ def deposit_option(clients):
     client.make_transaction(account, transaction)
 
 
-def withdraw_option(clients):
+def withdraw_option(clients, today_utc):
     cpf = input("Enter your CPF (only numbers): ")
     client = filter_clients(cpf, clients)
 
     if not client:
-        print("Unable to find that user, it may not exist")
+        print("Unable to find that client, it may not exist")
         return
     
     value = Decimal(input("How much do you want to withdraw? R$").replace(',', '.'))
-    transaction = Withdraw(value)
+    transaction = Withdraw(value, today_utc)
 
     account = get_client_account(client)
     if not account:
@@ -103,21 +97,22 @@ def withdraw_option(clients):
     client.make_transaction(account, transaction)
 
 
-def create_user_option(users):
+def create_client_option(clients):
     cpf = input("Enter your CPF (only numbers): ")
-    user = filter_clients(cpf, users)
+    client = filter_clients(cpf, clients)
 
-    if user:
-        print("There is already a user with this CPF.")
+    if client:
+        print("There is already a client with this CPF.")
         return
     
     name = input("Insert your full name: ")
     birthday = input("Inform your birthday(dd-mm-yyyy): ")
     address = input("Inform your address(street, number - neighborhood - city): ")
 
-    users.append({"name": name, "birthday": birthday, "cpf": cpf, "address": address})
+    client = Individual(name=name, birthday=birthday, cpf=cpf, address=address)
 
-    print("Success creating new user!")
+    clients.append(client)
+    print(f"Client {client.name} created successfully!")
 
 
 def create_account_option(account_number, clients, accounts):
@@ -150,18 +145,12 @@ def list_accounts_option(account_list: List[CheckingAccount]) -> None:
 
 def statement_option(clients: list[Individual], timezone) -> None:
     
-    # ===== Statement Header
-    print("")
-    print(f" My statements in PyBank ".center(55, "="))
-    print(f"\nINDEX".center(5)+" |  "+f"DATE TIME".center(20)+" | "+f"OPERATION".center(10)+" | "+"VALUE(R$)")
-    print(f"-".center(55, "-"))
-
     # ===== Statement Logic
     cpf = input("Enter your CPF (only numbers): ")
 
     client = filter_clients(cpf, clients)
     if not client:
-        print("Unable to find that user, it may not exist")
+        print("Unable to find that client, it may not exist")
         return
     
     account = get_client_account(client)
@@ -169,6 +158,13 @@ def statement_option(clients: list[Individual], timezone) -> None:
         print("This client does not have an account")
         return
     
+    # ===== Statement Header
+    print("")
+    print(f" My statements in PyBank ".center(55, "="))
+    print(f"\nINDEX".center(5)+" |  "+f"DATE TIME".center(20)+" | "+f"OPERATION".center(10)+" | "+"VALUE(R$)")
+    print(f"-".center(55, "-"))
+
+    # ===== Statement Body
     transactions: List[TransactionDict] = account.history.transactions
     if not len(transactions):
         print("No transactions recorded")
@@ -199,7 +195,6 @@ def statement_option(clients: list[Individual], timezone) -> None:
 def main():
     timezone_brasil = pytz.timezone('America/Sao_Paulo')
     today_utc = datetime.now(timezone.utc)
-    users = []
 
     clients: List[Individual] = []
     accounts: List[Account] = []
@@ -210,10 +205,10 @@ def main():
         option = input("\nSelect an option ([m] - Menu): ").upper()
 
         if option == "D":
-            deposit_option(clients)
+            deposit_option(clients, today_utc)
             
         elif option == "W":
-            withdraw_option(clients)
+            withdraw_option(clients, today_utc)
             
         elif option == "S":
             statement_option(clients, timezone=timezone_brasil)
@@ -226,7 +221,7 @@ def main():
             show_menu(today_utc, timezone=timezone_brasil)
 
         elif option == "NU":
-            create_user_option(users)
+            create_client_option(clients)
             
         elif option == "NA":
             account_number = len(accounts) + 1
