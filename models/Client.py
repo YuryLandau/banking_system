@@ -1,6 +1,6 @@
 from types import Account, Transaction
 
-class Cliente:
+class Client:
     def __init__(self, address, accounts: list[Account] = []):
         self.address = address
         self.accounts = accounts

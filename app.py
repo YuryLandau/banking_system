@@ -2,14 +2,14 @@ import os
 from datetime import datetime, timezone, timedelta
 import pytz
 
-from types import Deposit, Withdraw
+from models import Deposit, Withdraw, Client
 
 def limpar_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 # Operation Types
 DEPOSIT = 1
-WITHDRAW = 2
+WITHDRAW = 2    
 DAILY_WITHDRAW_LIMIT = 10
 DAILY_WITHDRAW_LIMIT_VALUE = 500
 AGENCY = "0001"
@@ -28,7 +28,7 @@ def reach_daily_withdraws(extrato, today_utc):
     return withdraws_made, withdraws_values
         
 
-def filter_clients(cpf, clients):
+def filter_clients(cpf, clients: list[Client]) -> Client:
     filtered_clients = [client for client in clients if client['cpf'] == cpf]
     return filtered_clients[0] if filtered_clients else None
 
@@ -77,7 +77,6 @@ def deposit_option(clients):
     account = get_client_account(client)
     if not account:
         return
-
     client.make_transaction(account, transaction)
 
 
@@ -95,7 +94,7 @@ def withdraw_option(clients):
     account = get_client_account(client)
     if not account:
         return
-
+        
     client.make_transaction(account, transaction)
 
 
